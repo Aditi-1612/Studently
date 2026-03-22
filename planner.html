@@ -50,7 +50,7 @@
             </div>
             
             <ul class="nav-menu">
-                <li class="nav-item" onclick="window.location.href='index(2).html'" style="cursor: pointer;">
+                <li class="nav-item" onclick="window.location.href='index.html'" style="cursor: pointer;">
                     <i data-lucide="help-circle"></i>
                     Doubt Solver
                 </li>
@@ -112,8 +112,8 @@
         </main>
     </div>
 
-    <!-- Grok JS import -->
-    <script src="grok.js"></script>
+    <!-- Gemini JS import -->
+    <script src="gemini.js"></script>
     <script>
         lucide.createIcons();
 
@@ -147,21 +147,31 @@ Format:
             const userPrompt = `Exam: ${examName}, Target Date: ${examDate}, Weak Subjects: ${weakSubjects || "None provided"}.`;
 
             try {
-                const response = await callGrok(systemPrompt, userPrompt);
+                const response = await callGemini(systemPrompt, userPrompt);
                 let planData = [];
                 
-                // Clean the response just in case Grok includes markdown syntax
+                // Clean the response just in case Gemini includes markdown syntax or `<think>` tags
                 let cleanResponse = response.trim();
-                if (cleanResponse.startsWith('\`\`\`json')) {
-                    cleanResponse = cleanResponse.replace(/\`\`\`json/i, '').replace(/\`\`\`/g, '').trim();
-                } else if (cleanResponse.startsWith('\`\`\`')) {
-                    cleanResponse = cleanResponse.replace(/\`\`\`/g, '').trim();
+                
+                // Extract just the JSON array to avoid "<think>" blocks or other text
+                const startIndex = cleanResponse.indexOf('[');
+                const endIndex = cleanResponse.lastIndexOf(']');
+                
+                if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
+                    cleanResponse = cleanResponse.substring(startIndex, endIndex + 1);
+                } else {
+                    // Fallback to original cleaning if no array brackets found
+                    if (cleanResponse.startsWith('\`\`\`json')) {
+                        cleanResponse = cleanResponse.replace(/\`\`\`json/i, '').replace(/\`\`\`/g, '').trim();
+                    } else if (cleanResponse.startsWith('\`\`\`')) {
+                        cleanResponse = cleanResponse.replace(/\`\`\`/g, '').trim();
+                    }
                 }
 
                 try {
                     planData = JSON.parse(cleanResponse);
                 } catch (parseErr) {
-                    console.error("Grok returned invalid JSON:", cleanResponse);
+                    console.error("Gemini returned invalid JSON:", cleanResponse);
                     throw new Error("Invalid output from AI planner. See console for details.");
                 }
 
@@ -185,7 +195,13 @@ Format:
 
             } catch (err) {
                 console.error("Failed to generate plan:", err);
-                alert("Failed to parse the AI plan format. Grok might have returned non-JSON text. Please try again.");
+                if (err instanceof ReferenceError) {
+                    alert("Error: gemini.js script is missing or callGemini is not defined. Please check if gemini.js is present and has no syntax errors.");
+                } else if (err.message && err.message.includes('API returned status')) {
+                    alert("API Check: Your request failed! Please ensure your actual Gemini API key is placed inside gemini.js (currently it might be empty or wrong).");
+                } else {
+                    alert("Failed to parse the AI plan format. Gemini might have returned non-JSON text. Please try again.");
+                }
             } finally {
                 btn.innerHTML = "Generate Smart Plan";
                 btn.disabled = false;
