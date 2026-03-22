@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Studently | Spaced Revision</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="logo">
+                <img src="assets/logo.png" alt="Studently Logo" style="width: 40px; height: 40px; border-radius: 8px;" onerror="this.src=''; this.style.display='none';">
+                Studently
+            </div>
+            
+            <ul class="nav-menu">
+                <li class="nav-item" onclick="window.location.href='index(2).html'" style="cursor: pointer;">
+                    <i data-lucide="help-circle"></i>
+                    Doubt Solver
+                </li>
+                <li class="nav-item" onclick="window.location.href='planner.html'" style="cursor: pointer;">
+                    <i data-lucide="calendar"></i>
+                    Study Planner
+                </li>
+                <li class="nav-item active" style="cursor: pointer;">
+                    <i data-lucide="repeat"></i>
+                    Spaced Revision
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content Surface -->
+        <main class="main-content">
+            <section class="view active">
+                <div class="hero-text" style="text-align: left; margin-bottom: 2rem;">
+                    <h1 style="display: flex; align-items: center; gap: 12px;"><i data-lucide="repeat" style="width: 36px; height: 36px; color: var(--primary-color);"></i> Active Recall Engine</h1>
+                    <p style="color: var(--text-secondary); font-size: 1.1rem;">Master your weak concepts. We'll remind you exactly when to revise them before you forget using the SM-2 algorithm.</p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                    <!-- Add Topic Section -->
+                    <div class="glass-card">
+                        <h2 style="margin-bottom: 20px;"><i data-lucide="plus-circle" style="vertical-align: middle;"></i> Add New Topic</h2>
+                        <div style="display: flex; flex-direction: column; gap: 15px;">
+                            <div>
+                                <label style="color: var(--text-secondary); margin-bottom: 8px; display: block;">Topic Name</label>
+                                <input type="text" id="topic-name" class="glass-input" placeholder="e.g. SN1 and SN2 Reactions" style="width: 100%;">
+                            </div>
+                            <div>
+                                <label style="color: var(--text-secondary); margin-bottom: 8px; display: block;">Subject</label>
+                                <select id="topic-subject" class="glass-input" style="width: 100%;">
+                                    <option value="Physics">Physics</option>
+                                    <option value="Chemistry">Chemistry</option>
+                                    <option value="Mathematics">Mathematics</option>
+                                    <option value="Biology">Biology</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <button id="add-topic-btn" class="search-btn" style="position: static; transform: none; width: 100%; margin-top: 10px; padding: 12px;">Add to Revision System</button>
+                        </div>
+                    </div>
+
+                    <!-- Due for Revision Section -->
+                    <div class="glass-card">
+                        <h2 style="margin-bottom: 20px; color: #fb7185;"><i data-lucide="bell" style="vertical-align: middle;"></i> Due For Revision Today</h2>
+                        <div id="due-topics-list" style="display: flex; flex-direction: column; gap: 15px; max-height: 400px; overflow-y: auto;">
+                            <!-- Items injected by spaced.js -->
+                            <p style="color: var(--text-secondary);">Loading topics...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Future/All Topics -->
+                <div class="glass-card" style="margin-top: 30px;">
+                    <h2 style="margin-bottom: 20px;"><i data-lucide="list" style="vertical-align: middle;"></i> All Tracked Topics</h2>
+                    <div id="all-topics-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
+                        <!-- Items injected by spaced.js -->
+                    </div>
+                </div>
+                
+            </section>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="spaced.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
