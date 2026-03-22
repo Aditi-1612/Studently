@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Studently | Your AI Study Companion</title>
+    <meta name="description" content="Studently: AI-powered spaced repetition, study planning, and real-time doubt solving.">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Styling -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="light-theme">
+    <div id="app">
+        <!-- 1. AUTH SCREEN -->
+        <section id="auth-screen" class="screen active">
+            <div class="auth-container">
+                <div class="brand">
+                    <img src="logo.jpg" alt="Studently Logo" class="brand-img">
+                    <h1>Studently</h1>
+                </div>
+                <div class="auth-card">
+                    <div class="auth-tabs">
+                        <button class="tab-btn active" data-tab="login">Login</button>
+                        <button class="tab-btn" data-tab="signup">Sign Up</button>
+                    </div>
+                    
+                    <form id="login-form" class="auth-form active">
+                        <div class="input-group">
+                            <label for="login-email">Email</label>
+                            <input type="email" id="login-email" placeholder="you@example.com" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="login-password">Password</label>
+                            <input type="password" id="login-password" placeholder="••••••••" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Sign In</button>
+                    </form>
+
+                    <form id="signup-form" class="auth-form">
+                        <div class="input-group">
+                            <label for="signup-name">Full Name</label>
+                            <input type="text" id="signup-name" placeholder="John Doe" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="signup-email">Email</label>
+                            <input type="email" id="signup-email" placeholder="you@example.com" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="signup-password">Password</label>
+                            <input type="password" id="signup-password" placeholder="••••••••" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Create Account</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. ONBOARDING SCREEN -->
+        <section id="onboarding-screen" class="screen">
+            <div class="onboarding-container">
+                <div class="onboarding-card">
+                    <div class="onboarding-step active" data-step="1">
+                        <h2>Welcome to Studently! 🎓</h2>
+                        <p>Let's personalize your learning experience. What are you preparing for?</p>
+                        <div class="exam-options">
+                            <div class="option" data-value="JEE">JEE</div>
+                            <div class="option" data-value="NEET">NEET</div>
+                            <div class="option" data-value="UPSC">UPSC</div>
+                            <div class="option" data-value="BOARDS">Boards</div>
+                        </div>
+                        <div class="input-group mt-20">
+                            <label>When is your final exam?</label>
+                            <input type="date" id="onboard-exam-date" required>
+                        </div>
+                        <button class="btn btn-primary next-step" data-next="2">Continue</button>
+                    </div>
+
+                    <div class="onboarding-step" data-step="2">
+                        <h2>Select your Subjects 📚</h2>
+                        <p>Which subjects do you want us to track for you?</p>
+                        <div class="subject-grid">
+                            <div class="sub-option" data-sub="Physics">Physics</div>
+                            <div class="sub-option" data-sub="Chemistry">Chemistry</div>
+                            <div class="sub-option" data-sub="Maths">Maths</div>
+                            <div class="sub-option" data-sub="Biology">Biology</div>
+                        </div>
+                        <button class="btn btn-primary next-step" data-next="3">Almost there!</button>
+                    </div>
+
+                    <div class="onboarding-step" data-step="3">
+                        <h2>Syllabus Coverage 📈</h2>
+                        <p>How much of the syllabus have you completed so far?</p>
+                        <div class="slider-container">
+                            <input type="range" min="0" max="100" value="0" class="slider" id="syllabus-slider">
+                            <div class="slider-value"><span id="slider-pct">0</span>%</div>
+                        </div>
+                        <button class="btn btn-primary" id="complete-onboarding">Let's Study!</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. MAIN HOMEPAGE / DASHBOARD -->
+        <section id="home-screen" class="screen">
+            <nav class="main-nav">
+                <div class="nav-brand">
+                    <img src="logo.jpg" alt="Logo" class="nav-logo">
+                    <span>Studently</span>
+                </div>
+                <div class="nav-links">
+                    <button class="nav-item active" data-view="tasks">Today's Tasks</button>
+                    <button class="nav-item" data-view="revision">Revision</button>
+                    <button class="nav-item" data-view="questions">Practice</button>
+                    <button class="nav-item" data-view="chat">AI Doubt Solver</button>
+                </div>
+                <div class="nav-user" id="logout-btn">
+                    <div class="avatar-sm" id="user-initial">JD</div>
+                </div>
+            </nav>
+
+            <main class="dashboard-content">
+                <!-- VIEW 1: TODAY'S TASKS -->
+                <div id="view-tasks" class="dashboard-view active">
+                    <header class="view-header">
+                        <h1>Your Daily Study Plan</h1>
+                        <p id="today-date-str"></p>
+                    </header>
+                    <div class="task-list" id="task-container">
+                        <!-- Tasks from study_plans will go here -->
+                        <div class="task-card empty">Generating your personalized plan...</div>
+                    </div>
+                </div>
+
+                <!-- VIEW 2: REVISION -->
+                <div id="view-revision" class="dashboard-view">
+                    <header class="view-header">
+                        <h1>Spaced Repetition Engine</h1>
+                        <p>Items due for revision based on your forgetting curve.</p>
+                    </header>
+                    <div class="revision-grid" id="revision-container">
+                        <!-- items from concept_progress -->
+                    </div>
+                </div>
+
+                <!-- VIEW 3: PRACTICE -->
+                <div id="view-questions" class="dashboard-view">
+                    <header class="view-header">
+                        <h1>Adaptive Practice</h1>
+                        <p>Topic-wise questions generated just for you.</p>
+                    </header>
+                    <div class="practice-area">
+                        <div class="practice-card">
+                            <h3>Choose a topic to begin</h3>
+                            <div class="topic-chips" id="topic-chips">
+                                <!-- Generated from subjects -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW 4: CHAT (Existing) -->
+                <div id="view-chat" class="dashboard-view">
+                    <div class="chat-layout">
+                        <aside class="chat-sidebar">
+                            <button class="btn-new-chat" id="new-chat-btn">+ New Chat</button>
+                            <div class="chat-history" id="history-container">
+                                <!-- convos from conversations -->
+                            </div>
+                        </aside>
+                        <div class="chat-main">
+                            <div class="messages-area" id="messages-container">
+                                <!-- messages -->
+                            </div>
+                            <footer class="input-area">
+                                <form id="chat-form">
+                                    <div class="input-wrapper">
+                                        <textarea id="chat-input" placeholder="Ask your doubt..." rows="1"></textarea>
+                                        <button type="submit" id="send-btn" disabled>Send</button>
+                                    </div>
+                                </form>
+                            </footer>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
