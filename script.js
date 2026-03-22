@@ -1,0 +1,2 @@
+const { createClient } = supabase;
+window.sb = createClient('https://wocnzfrwcsspenbiepwf.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvY256ZnJ3Y3NzcGVuYmllcHdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNzExNDMsImV4cCI6MjA4OTc0NzE0M30.Britr0FXy-mFjCsTvv3RSEIRRV_AJyPyVemF3u_3cb0');
