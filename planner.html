@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Studently | AI Study Planner</title>
+    <meta name="description" content="The ultimate student platform for doubt clearing, focus gamification, and academic planning.">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .planner-form {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .plan-table {
+            width: 100%;
+            border-collapse: collapse;
+            color: var(--text-primary);
+        }
+        .plan-table th, .plan-table td {
+            text-align: left;
+            padding: 16px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+        .plan-table th {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        .day-badge {
+            background: var(--primary-color);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="logo">
+                <img src="assets/logo.png" alt="Studently Logo" style="width: 40px; height: 40px; border-radius: 8px;" onerror="this.src=''; this.style.display='none';">
+                Studently
+            </div>
+            
+            <ul class="nav-menu">
+                <li class="nav-item" onclick="window.location.href='index(2).html'" style="cursor: pointer;">
+                    <i data-lucide="help-circle"></i>
+                    Doubt Solver
+                </li>
+                <li class="nav-item active" style="cursor: pointer;">
+                    <i data-lucide="calendar"></i>
+                    Study Planner
+                </li>
+                <li class="nav-item" onclick="window.location.href='revision.html'" style="cursor: pointer;">
+                    <i data-lucide="repeat"></i>
+                    Spaced Revision
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content Surface -->
+        <main class="main-content">
+            <section class="view active">
+                <div class="hero-text" style="text-align: left; margin-bottom: 2rem;">
+                    <h1 style="display: flex; align-items: center; gap: 12px;"><i data-lucide="calendar" style="width: 36px; height: 36px; color: var(--primary-color);"></i> Autonomous Study Planner.</h1>
+                    <p style="color: var(--text-secondary); font-size: 1.1rem;">Tell AI about your upcoming exam and we'll craft a perfect day-by-day JSON strategy.</p>
+                </div>
+
+                <div class="glass-card" style="max-width: 800px;">
+                    <div class="planner-form">
+                        <div>
+                            <label style="color: var(--text-secondary); margin-bottom: 8px; display: block; font-weight: 500;">Exam Name</label>
+                            <input type="text" id="exam-name" class="glass-input" placeholder="e.g. JEE Mains 2026, NEET UG..." style="width: 100%;">
+                        </div>
+                        <div>
+                            <label style="color: var(--text-secondary); margin-bottom: 8px; display: block; font-weight: 500;">Exam Date</label>
+                            <input type="date" id="exam-date" class="glass-input" style="width: 100%; color-scheme: dark;">
+                        </div>
+                        <div>
+                            <label style="color: var(--text-secondary); margin-bottom: 8px; display: block; font-weight: 500;">Your Weak Subjects/Topics</label>
+                            <input type="text" id="weak-subjects" class="glass-input" placeholder="e.g. Organic Chemistry, Integration, Ray Optics..." style="width: 100%;">
+                        </div>
+                        <button class="search-btn" id="generate-plan-btn" style="position: static; transform: none; width: 100%; margin-top: 10px; padding: 15px;">Generate Smart Plan</button>
+                    </div>
+                </div>
+
+                <div id="plan-results" style="display: none; margin-top: 40px; max-width: 800px;">
+                    <h2 style="margin-bottom: 20px; color: var(--primary-color);">Your Personalized Strategy</h2>
+                    <div class="glass-card" style="padding: 0; overflow: hidden; overflow-x: auto;">
+                        <table class="plan-table" id="plan-table">
+                            <thead>
+                                <tr>
+                                    <th>Day</th>
+                                    <th>Focus Area</th>
+                                    <th>Assigned Tasks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Generated rows injected via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Grok JS import -->
+    <script src="grok.js"></script>
+    <script>
+        lucide.createIcons();
+
+        document.getElementById('generate-plan-btn').addEventListener('click', async () => {
+            const examName = document.getElementById('exam-name').value.trim();
+            const examDate = document.getElementById('exam-date').value;
+            const weakSubjects = document.getElementById('weak-subjects').value.trim();
+
+            if (!examName || !examDate) {
+                alert("Please provide at least your Exam Name and Exam Date to generate the plan.");
+                return;
+            }
+
+            const btn = document.getElementById('generate-plan-btn');
+            btn.innerHTML = "Generating JSON Plan... <i data-lucide='loader' class='spin'></i>";
+            btn.disabled = true;
+
+            const systemPrompt = `You are an expert academic study planner for Indian competitive exams.
+You MUST output strictly in raw JSON format. Do not use markdown backticks like \`\`\`json. 
+Return ONLY a JSON array of objects.
+Rules:
+- Give a 5-day structured plan.
+- Focus heavily on the user's weak subjects to improve their score.
+- Ensure tasks are actionable.
+Format:
+[
+  { "day": 1, "focus": "Subject/Topic", "tasks": "Specific actionable task" },
+  { "day": 2, "focus": "...", "tasks": "..." }
+]`;
+
+            const userPrompt = `Exam: ${examName}, Target Date: ${examDate}, Weak Subjects: ${weakSubjects || "None provided"}.`;
+
+            try {
+                const response = await callGrok(systemPrompt, userPrompt);
+                let planData = [];
+                
+                // Clean the response just in case Grok includes markdown syntax
+                let cleanResponse = response.trim();
+                if (cleanResponse.startsWith('\`\`\`json')) {
+                    cleanResponse = cleanResponse.replace(/\`\`\`json/i, '').replace(/\`\`\`/g, '').trim();
+                } else if (cleanResponse.startsWith('\`\`\`')) {
+                    cleanResponse = cleanResponse.replace(/\`\`\`/g, '').trim();
+                }
+
+                try {
+                    planData = JSON.parse(cleanResponse);
+                } catch (parseErr) {
+                    console.error("Grok returned invalid JSON:", cleanResponse);
+                    throw new Error("Invalid output from AI planner. See console for details.");
+                }
+
+                const tbody = document.querySelector('#plan-table tbody');
+                tbody.innerHTML = '';
+
+                planData.forEach(dayPlan => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><span class="day-badge">Day ${dayPlan.day}</span></td>
+                        <td style="font-weight: 500; color: var(--text-primary);">${dayPlan.focus}</td>
+                        <td style="color: var(--text-secondary); line-height: 1.5;">${dayPlan.tasks}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                document.getElementById('plan-results').style.display = 'block';
+                document.getElementById('plan-results').scrollIntoView({ behavior: 'smooth' });
+                
+                lucide.createIcons();
+
+            } catch (err) {
+                console.error("Failed to generate plan:", err);
+                alert("Failed to parse the AI plan format. Grok might have returned non-JSON text. Please try again.");
+            } finally {
+                btn.innerHTML = "Generate Smart Plan";
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
