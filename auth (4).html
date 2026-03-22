@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StudyTrack</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #161616;
+      --border: #222222;
+      --border-active: #444444;
+      --accent: #e8ff47;
+      --accent-dim: #c8df27;
+      --text: #f0f0f0;
+      --text-muted: #666666;
+      --error: #ff4f4f;
+      --success: #47ffb2;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(232,255,71,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(232,255,71,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      width: 600px; height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(232,255,71,0.05) 0%, transparent 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .screen { display: none; width: 100%; max-width: 460px; animation: fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both; }
+    .screen.active { display: block; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 48px 40px 40px;
+      position: relative;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: -1px; right: -1px;
+      width: 40px; height: 40px;
+      border-top: 2px solid var(--accent);
+      border-right: 2px solid var(--accent);
+    }
+    .card::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; left: -1px;
+      width: 40px; height: 40px;
+      border-bottom: 2px solid var(--accent);
+      border-left: 2px solid var(--accent);
+    }
+
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800; font-size: 20px;
+      color: var(--accent); margin-bottom: 32px;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .logo-dot {
+      width: 8px; height: 8px;
+      background: var(--accent); border-radius: 50%;
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+    .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 28px; }
+    .tab {
+      flex: 1; background: none; border: none;
+      color: var(--text-muted);
+      font-family: 'Syne', sans-serif;
+      font-weight: 600; font-size: 12px;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 10px 0 14px; cursor: pointer;
+      position: relative; transition: color 0.2s;
+    }
+    .tab::after {
+      content: ''; position: absolute;
+      bottom: -1px; left: 0; right: 0; height: 2px;
+      background: var(--accent);
+      transform: scaleX(0);
+      transition: transform 0.25s cubic-bezier(0.22,1,0.36,1);
+    }
+    .tab.active { color: var(--text); }
+    .tab.active::after { transform: scaleX(1); }
+
+    .form { display: flex; flex-direction: column; gap: 16px; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+
+    label {
+      font-size: 11px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-muted);
+    }
+
+    input[type="text"], input[type="email"], input[type="password"], input[type="date"] {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 14px; padding: 12px 14px;
+      outline: none; width: 100%;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input::placeholder { color: var(--text-muted); }
+    input:focus { border-color: var(--border-active); box-shadow: 0 0 0 3px rgba(232,255,71,0.06); }
+    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.4); cursor: pointer; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      background: var(--bg); border: 1px solid var(--border);
+      color: var(--text-muted); font-family: 'DM Mono', monospace;
+      font-size: 12px; padding: 8px 16px; cursor: pointer;
+      transition: all 0.15s; user-select: none;
+    }
+    .chip:hover { border-color: var(--border-active); color: var(--text); }
+    .chip.selected { background: var(--accent); border-color: var(--accent); color: #0a0a0a; }
+
+    .subject-sliders { display: flex; flex-direction: column; gap: 14px; }
+    .slider-row { display: flex; flex-direction: column; gap: 8px; }
+    .slider-label { display: flex; justify-content: space-between; align-items: center; }
+    .slider-label span:first-child { font-size: 12px; color: var(--text); }
+    .slider-pct { font-size: 12px; color: var(--accent); font-weight: 500; min-width: 36px; text-align: right; }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%; height: 3px;
+      background: var(--border);
+      outline: none; border: none; padding: 0; box-shadow: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px;
+      border-radius: 50%; background: var(--accent); cursor: pointer;
+    }
+
+    .btn {
+      background: var(--accent); color: #0a0a0a; border: none;
+      font-family: 'Syne', sans-serif; font-weight: 700;
+      font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 14px; cursor: pointer; transition: background 0.2s, transform 0.1s;
+    }
+    .btn:hover { background: var(--accent-dim); }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-ghost {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--text-muted); font-family: 'Syne', sans-serif;
+      font-weight: 600; font-size: 11px; letter-spacing: 0.08em;
+      text-transform: uppercase; padding: 8px 12px; cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-ghost:hover { border-color: var(--border-active); color: var(--text); }
+
+    .btn .spinner {
+      display: inline-block; width: 12px; height: 12px;
+      border: 2px solid rgba(0,0,0,0.3); border-top-color: #0a0a0a;
+      border-radius: 50%; animation: spin 0.6s linear infinite;
+      vertical-align: middle; margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .message {
+      font-size: 12px; padding: 10px 14px;
+      border-left: 2px solid; display: none;
+      animation: msgIn 0.3s ease both;
+    }
+    @keyframes msgIn { from{opacity:0;transform:translateX(-6px)} to{opacity:1;transform:translateX(0)} }
+    .message.error   { color: var(--error);   border-color: var(--error);   background: rgba(255,79,79,0.06); }
+    .message.success { color: var(--success); border-color: var(--success); background: rgba(71,255,178,0.06); }
+    .message.show    { display: block; }
+
+    .dash-header {
+      display: flex; align-items: center;
+      justify-content: space-between; margin-bottom: 28px;
+    }
+
+    .user-pill {
+      display: flex; align-items: center; gap: 10px;
+    }
+
+    .user-email { font-size: 11px; color: var(--text-muted); }
+
+    .saved-banner {
+      background: var(--surface2); border: 1px solid var(--border);
+      padding: 18px; margin-bottom: 20px; display: none;
+    }
+    .saved-banner.show { display: block; }
+    .saved-banner h3 {
+      font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700;
+      color: var(--accent); margin-bottom: 10px; letter-spacing: 0.05em;
+    }
+    .saved-row {
+      display: flex; justify-content: space-between;
+      font-size: 11px; padding: 5px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .saved-row:last-child { border-bottom: none; }
+    .saved-row span:first-child { color: var(--text-muted); text-transform: capitalize; }
+    .saved-row span:last-child  { color: var(--text); }
+
+    .section-title {
+      font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- AUTH SCREEN -->
+  <div class="screen active" id="screen-auth">
+    <div class="card">
+      <div class="logo"><span class="logo-dot"></span>STUDYTRACK</div>
+
+      <div class="tabs">
+        <button class="tab active" id="tab-login" onclick="switchTab('login')">Login</button>
+        <button class="tab" id="tab-signup" onclick="switchTab('signup')">Sign Up</button>
+      </div>
+
+      <div id="form-login">
+        <div class="form">
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="login-email" placeholder="you@example.com" />
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input type="password" id="login-password" placeholder="••••••••" />
+          </div>
+          <div class="message" id="login-msg"></div>
+          <button class="btn" id="login-btn" onclick="handleLogin()">Login</button>
+        </div>
+      </div>
+
+      <div id="form-signup" style="display:none">
+        <div class="form">
+          <div class="field">
+            <label>Full Name</label>
+            <input type="text" id="signup-name" placeholder="Your name" />
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="signup-email" placeholder="you@example.com" />
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input type="password" id="signup-password" placeholder="min. 6 characters" />
+          </div>
+          <div class="message" id="signup-msg"></div>
+          <button class="btn" id="signup-btn" onclick="handleSignup()">Create Account</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXAM SCREEN (shown after login) -->
+  <div class="screen" id="screen-exam">
+    <div class="card">
+      <div class="dash-header">
+        <div class="logo" style="margin-bottom:0"><span class="logo-dot"></span>STUDYTRACK</div>
+        <div class="user-pill">
+          <span class="user-email" id="user-email-display"></span>
+          <button class="btn-ghost" onclick="handleLogout()">Logout</button>
+        </div>
+      </div>
+
+      <div class="saved-banner" id="saved-banner">
+        <h3>✓ YOUR SAVED DETAILS</h3>
+        <div id="saved-content"></div>
+      </div>
+
+      <p class="section-title">Exam Details</p>
+
+      <div class="form">
+        <div class="field">
+          <label>Exam Date</label>
+          <input type="date" id="exam-date" />
+        </div>
+
+        <div class="field">
+          <label>Subjects</label>
+          <div class="chips">
+            <div class="chip" onclick="toggleChip(this,'Physics')">Physics</div>
+            <div class="chip" onclick="toggleChip(this,'Chemistry')">Chemistry</div>
+            <div class="chip" onclick="toggleChip(this,'Maths')">Maths</div>
+            <div class="chip" onclick="toggleChip(this,'English')">English</div>
+            <div class="chip" onclick="toggleChip(this,'Biology')">Biology</div>
+          </div>
+        </div>
+
+        <div class="field" id="syllabus-section" style="display:none">
+          <label>Syllabus Covered</label>
+          <div class="subject-sliders" id="sliders-container"></div>
+        </div>
+
+        <div class="message" id="exam-msg"></div>
+        <button class="btn" id="save-btn" onclick="handleSave()">Save Details</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL      = 'https://wocnzfrwcsspenbiepwf.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvY256ZnJ3Y3NzcGVuYmllcHdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNzExNDMsImV4cCI6MjA4OTc0NzE0M30.Britr0FXy-mFjCsTvv3RSEIRRV_AJyPyVemF3u_3cb0';
+
+    const { createClient } = supabase;
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentUser      = null;
+    let selectedSubjects = [];
+
+    // Check existing session on load
+    sb.auth.getSession().then(({ data: { session } }) => {
+      if (session) showExamScreen(session.user);
+    });
+
+    sb.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN'  && session) showExamScreen(session.user);
+      if (event === 'SIGNED_OUT')             showAuthScreen();
+    });
+
+    // ── SCREENS ──
+    function showExamScreen(user) {
+      currentUser = user;
+      document.getElementById('screen-auth').classList.remove('active');
+      document.getElementById('screen-exam').classList.add('active');
+      document.getElementById('user-email-display').textContent = user.email;
+      loadSaved();
+    }
+
+    function showAuthScreen() {
+      currentUser = null;
+      document.getElementById('screen-exam').classList.remove('active');
+      document.getElementById('screen-auth').classList.add('active');
+    }
+
+    // ── AUTH ──
+    function switchTab(tab) {
+      document.getElementById('form-login').style.display  = tab === 'login'  ? 'block' : 'none';
+      document.getElementById('form-signup').style.display = tab === 'signup' ? 'block' : 'none';
+      document.getElementById('tab-login').classList.toggle('active',  tab === 'login');
+      document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+    }
+
+    function showMsg(id, type, text) {
+      const el = document.getElementById(id);
+      el.className = `message ${type} show`;
+      el.textContent = text;
+    }
+
+    function setLoading(btnId, loading, label) {
+      const btn = document.getElementById(btnId);
+      btn.disabled = loading;
+      btn.innerHTML = loading ? '<span class="spinner"></span>Please wait...' : label;
+    }
+
+    async function handleLogin() {
+      const email    = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      if (!email || !password) return showMsg('login-msg', 'error', 'Fill in both fields.');
+      setLoading('login-btn', true, 'Login');
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      setLoading('login-btn', false, 'Login');
+      if (error) showMsg('login-msg', 'error', error.message);
+    }
+
+    async function handleSignup() {
+      const name     = document.getElementById('signup-name').value.trim();
+      const email    = document.getElementById('signup-email').value.trim();
+      const password = document.getElementById('signup-password').value;
+      if (!name || !email || !password) return showMsg('signup-msg', 'error', 'All fields are required.');
+      if (password.length < 6) return showMsg('signup-msg', 'error', 'Password must be at least 6 characters.');
+      setLoading('signup-btn', true, 'Create Account');
+      try {
+        const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: name } } });
+        if (error) { setLoading('signup-btn', false, 'Create Account'); return showMsg('signup-msg', 'error', error.message); }
+        if (!data.user) { setLoading('signup-btn', false, 'Create Account'); return showMsg('signup-msg', 'error', 'Signup failed. Try again.'); }
+        // auto login right after signup
+        await sb.auth.signInWithPassword({ email, password });
+        setLoading('signup-btn', false, 'Create Account');
+      } catch (err) {
+        setLoading('signup-btn', false, 'Create Account');
+        showMsg('signup-msg', 'error', 'Network error — serve via localhost, not file://');
+      }
+    }
+
+    async function handleLogout() {
+      await sb.auth.signOut();
+    }
+
+    // ── CHIPS ──
+    function toggleChip(el, subject) {
+      const idx = selectedSubjects.indexOf(subject);
+      if (idx === -1) { selectedSubjects.push(subject); el.classList.add('selected'); }
+      else            { selectedSubjects.splice(idx, 1); el.classList.remove('selected'); }
+      renderSliders();
+    }
+
+    function renderSliders() {
+      const container = document.getElementById('sliders-container');
+      const section   = document.getElementById('syllabus-section');
+      if (selectedSubjects.length === 0) { section.style.display = 'none'; return; }
+      section.style.display = 'block';
+
+      const existing = {};
+      container.querySelectorAll('input[type="range"]').forEach(r => { existing[r.dataset.subject] = r.value; });
+
+      container.innerHTML = '';
+      selectedSubjects.forEach(sub => {
+        const val = existing[sub] || 50;
+        const row = document.createElement('div');
+        row.className = 'slider-row';
+        row.innerHTML = `
+          <div class="slider-label">
+            <span>${sub}</span>
+            <span class="slider-pct" id="pct-${sub}">${val}%</span>
+          </div>
+          <input type="range" min="0" max="100" value="${val}" data-subject="${sub}"
+            oninput="document.getElementById('pct-${sub}').textContent = this.value + '%'" />
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    // ── SAVE ──
+    async function handleSave() {
+      const examDate = document.getElementById('exam-date').value;
+      if (!examDate)                   return showMsg('exam-msg', 'error', 'Please select an exam date.');
+      if (selectedSubjects.length === 0) return showMsg('exam-msg', 'error', 'Select at least one subject.');
+
+      const syllabus = {};
+      document.querySelectorAll('#sliders-container input[type="range"]').forEach(r => {
+        syllabus[r.dataset.subject] = parseInt(r.value);
+      });
+
+      const payload = { exam_date: examDate, subjects: selectedSubjects, syllabus, saved_at: new Date().toISOString() };
+
+      setLoading('save-btn', true, 'Save Details');
+
+      // Always save to localStorage — works without any Supabase table
+      localStorage.setItem(`studytrack_${currentUser.id}`, JSON.stringify(payload));
+
+      // Also try Supabase if table exists
+      try {
+        await sb.from('exam_details').upsert({
+          user_id: currentUser.id,
+          exam_date: examDate,
+          subjects: selectedSubjects,
+          syllabus_covered: syllabus,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+      } catch(e) {
+        console.warn('exam_details table not set up — saved to localStorage only.');
+      }
+
+      setLoading('save-btn', false, 'Save Details');
+      showMsg('exam-msg', 'success', '✓ Details saved successfully!');
+      showSaved(payload);
+    }
+
+    // ── LOAD SAVED ──
+    function loadSaved() {
+      if (!currentUser) return;
+      const raw = localStorage.getItem(`studytrack_${currentUser.id}`);
+      if (!raw) return;
+      try {
+        const data = JSON.parse(raw);
+        document.getElementById('exam-date').value = data.exam_date || '';
+        selectedSubjects = data.subjects || [];
+        document.querySelectorAll('.chip').forEach(chip => {
+          if (selectedSubjects.includes(chip.textContent.trim())) chip.classList.add('selected');
+        });
+        renderSliders();
+        setTimeout(() => {
+          document.querySelectorAll('#sliders-container input[type="range"]').forEach(r => {
+            const v = data.syllabus[r.dataset.subject];
+            if (v !== undefined) {
+              r.value = v;
+              document.getElementById(`pct-${r.dataset.subject}`).textContent = v + '%';
+            }
+          });
+        }, 50);
+        showSaved(data);
+      } catch(e) { console.warn('Could not load saved data'); }
+    }
+
+    function showSaved(data) {
+      const banner  = document.getElementById('saved-banner');
+      const content = document.getElementById('saved-content');
+      banner.classList.add('show');
+      const rows = [
+        ['Exam Date', data.exam_date],
+        ['Subjects',  data.subjects.join(', ')],
+        ...data.subjects.map(s => [`${s} covered`, `${data.syllabus[s] || 0}%`])
+      ];
+      content.innerHTML = rows.map(([k,v]) =>
+        `<div class="saved-row"><span>${k}</span><span>${v}</span></div>`
+      ).join('');
+    }
+
+    // ── KEYBOARD ──
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      if (!document.getElementById('screen-auth').classList.contains('active')) return;
+      const loginVisible = document.getElementById('form-login').style.display !== 'none';
+      if (loginVisible) handleLogin(); else handleSignup();
+    });
+  </script>
+</body>
+</html>
