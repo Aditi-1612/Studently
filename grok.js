@@ -2,7 +2,7 @@
 // NOTE: For a hackathon frontend project, the API key is kept in the client.
 // Before demo, replace "your_key_here" with your actual Grok API Key.
 
-const GROK_API_KEY = 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
+const GROK_API_KEY = "your_key_here"
 ;
 
 /**
