@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Studently</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #06080f;
+      --bg2: #0d1117;
+      --surface: #111827;
+      --surface2: #1a2235;
+      --border: #1e2d40;
+      --border-hover: #2d4460;
+      --accent: #4f9eff;
+      --accent2: #7b5fff;
+      --accent-glow: rgba(79,158,255,0.15);
+      --green: #22c55e;
+      --yellow: #f59e0b;
+      --text: #f1f5f9;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+      --error: #ef4444;
+      --success: #22c55e;
+      --radius: 12px;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── SCREENS ─── */
+    .screen { display: none; min-height: 100vh; }
+    .screen.active { display: flex; }
+
+    /* ─── AUTH SCREEN ─── */
+    #screen-auth {
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      position: relative;
+    }
+
+    #screen-auth::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(79,158,255,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 80%, rgba(123,95,255,0.07) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .auth-box {
+      width: 100%; max-width: 420px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 40px 36px;
+      position: relative;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+      animation: boxIn 0.5s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    @keyframes boxIn {
+      from { opacity:0; transform:translateY(24px) scale(0.97); }
+      to   { opacity:1; transform:translateY(0) scale(1); }
+    }
+
+    .auth-logo {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 32px;
+    }
+
+    .auth-logo-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+
+    .auth-logo-name {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800; font-size: 22px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .tabs {
+      display: flex;
+      background: var(--bg2);
+      border-radius: 8px;
+      padding: 4px;
+      margin-bottom: 28px;
+    }
+
+    .tab {
+      flex: 1; border: none; background: none;
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-weight: 500; font-size: 13px;
+      padding: 9px; border-radius: 6px;
+      cursor: pointer; transition: all 0.2s;
+    }
+
+    .tab.active {
+      background: var(--surface2);
+      color: var(--text);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+
+    .form { display: flex; flex-direction: column; gap: 14px; }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+
+    label { font-size: 12px; font-weight: 500; color: var(--text-dim); }
+
+    input[type="text"], input[type="email"], input[type="password"] {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px; padding: 11px 14px;
+      outline: none; width: 100%;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input::placeholder { color: var(--text-muted); }
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; border: none; border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600; font-size: 14px;
+      padding: 13px; cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      margin-top: 4px;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .spinner {
+      display: inline-block; width: 13px; height: 13px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle; margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .msg {
+      font-size: 12px; padding: 10px 14px;
+      border-radius: 6px; display: none;
+    }
+    .msg.error   { background: rgba(239,68,68,0.1);  color: var(--error);   border: 1px solid rgba(239,68,68,0.2); }
+    .msg.success { background: rgba(34,197,94,0.1);  color: var(--success); border: 1px solid rgba(34,197,94,0.2); }
+    .msg.show    { display: block; animation: msgIn 0.3s ease both; }
+    @keyframes msgIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ─── ONBOARDING SCREEN ─── */
+    #screen-onboarding {
+      align-items: center; justify-content: center;
+      padding: 24px;
+      position: relative;
+    }
+
+    #screen-onboarding::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 70% 20%, rgba(79,158,255,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 20% 80%, rgba(123,95,255,0.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .onboarding-box {
+      width: 100%; max-width: 520px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 40px 36px;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+      animation: boxIn 0.5s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    .onboarding-header { margin-bottom: 28px; }
+
+    .onboarding-header h2 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700; font-size: 20px;
+      margin-bottom: 6px;
+    }
+
+    .onboarding-header p { font-size: 13px; color: var(--text-muted); }
+
+    .step-indicator {
+      display: flex; gap: 6px; margin-bottom: 28px;
+    }
+
+    .step-dot {
+      height: 3px; border-radius: 2px;
+      background: var(--border); flex: 1;
+      transition: background 0.3s;
+    }
+    .step-dot.done { background: var(--accent); }
+
+    .ob-form { display: flex; flex-direction: column; gap: 20px; }
+
+    .ob-label {
+      font-size: 12px; font-weight: 600;
+      color: var(--text-dim); letter-spacing: 0.05em;
+      text-transform: uppercase; margin-bottom: 8px;
+    }
+
+    input[type="date"] {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px; padding: 11px 14px;
+      outline: none; width: 100%;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input[type="date"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.5) sepia(1) hue-rotate(180deg); cursor: pointer; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .chip {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 20px; color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px; font-weight: 500;
+      padding: 8px 18px; cursor: pointer;
+      transition: all 0.18s; user-select: none;
+    }
+    .chip:hover { border-color: var(--border-hover); color: var(--text); }
+    .chip.selected {
+      background: var(--accent-glow);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .sliders-wrap { display: flex; flex-direction: column; gap: 16px; }
+
+    .slider-row { display: flex; flex-direction: column; gap: 8px; }
+
+    .slider-top { display: flex; justify-content: space-between; align-items: center; }
+    .slider-top span:first-child { font-size: 13px; font-weight: 500; }
+    .slider-val {
+      font-size: 12px; font-weight: 600;
+      color: var(--accent);
+      background: var(--accent-glow);
+      padding: 2px 8px; border-radius: 20px;
+    }
+
+    .slider-track { position: relative; height: 6px; background: var(--border); border-radius: 3px; }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      background: transparent; cursor: pointer;
+      border: none; outline: none; padding: 0; box-shadow: none;
+      margin: 0;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--bg);
+      box-shadow: 0 0 0 2px var(--accent);
+      cursor: pointer; margin-top: -5px;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 6px; border-radius: 3px;
+    }
+
+    /* ─── HOME SCREEN ─── */
+    #screen-home {
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* Navbar */
+    .navbar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(6,8,15,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      display: flex; align-items: center;
+      height: 64px; gap: 0;
+    }
+
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; margin-right: auto;
+    }
+
+    .nav-logo-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+
+    .nav-logo-name {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800; font-size: 20px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-links {
+      display: flex; align-items: center; gap: 2px;
+    }
+
+    .nav-link {
+      display: flex; align-items: center; gap: 7px;
+      padding: 8px 16px; border-radius: 8px;
+      border: none; background: none;
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: all 0.18s;
+      white-space: nowrap;
+    }
+
+    .nav-link:hover { background: var(--surface); color: var(--text); }
+
+    .nav-link.active {
+      background: var(--surface2);
+      color: var(--accent);
+    }
+
+    .nav-link svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+    .nav-right {
+      margin-left: 20px;
+      display: flex; align-items: center; gap: 12px;
+    }
+
+    .user-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #fff;
+      cursor: pointer; flex-shrink: 0;
+    }
+
+    .btn-logout {
+      background: none; border: 1px solid var(--border);
+      border-radius: 7px; color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 12px; font-weight: 500;
+      padding: 7px 14px; cursor: pointer;
+      transition: all 0.18s;
+    }
+    .btn-logout:hover { border-color: var(--error); color: var(--error); }
+
+    /* Main content */
+    .main-content {
+      flex: 1; padding: 40px 32px;
+      max-width: 1100px; margin: 0 auto; width: 100%;
+    }
+
+    /* Welcome section */
+    .welcome-section { margin-bottom: 36px; }
+
+    .welcome-section h1 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700; font-size: 28px;
+      margin-bottom: 6px;
+    }
+
+    .welcome-section h1 span {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .welcome-section p { font-size: 14px; color: var(--text-muted); }
+
+    /* Exam countdown */
+    .exam-card {
+      background: linear-gradient(135deg, rgba(79,158,255,0.1), rgba(123,95,255,0.1));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 32px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 16px;
+    }
+
+    .exam-card-left h3 {
+      font-size: 12px; font-weight: 600;
+      color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.08em; margin-bottom: 4px;
+    }
+
+    .exam-card-left p {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700; font-size: 20px;
+      color: var(--accent);
+    }
+
+    .days-badge {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; padding: 8px 18px; border-radius: 20px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700; font-size: 15px;
+    }
+
+    /* Subject progress */
+    .section-heading {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700; font-size: 16px;
+      margin-bottom: 16px;
+    }
+
+    .progress-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px; margin-bottom: 36px;
+    }
+
+    .progress-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .progress-card:hover { border-color: var(--border-hover); transform: translateY(-2px); }
+
+    .progress-card-top {
+      display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 12px;
+    }
+
+    .progress-card-top span:first-child {
+      font-size: 13px; font-weight: 600;
+    }
+
+    .pct-badge {
+      font-size: 12px; font-weight: 700;
+      color: var(--accent);
+    }
+
+    .progress-bar {
+      height: 4px; background: var(--border); border-radius: 2px; overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%; border-radius: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width 1s cubic-bezier(0.22,1,0.36,1);
+    }
+
+    /* Nav tab content */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: tabIn 0.3s ease both; }
+    @keyframes tabIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+    /* Mobile nav */
+    @media (max-width: 680px) {
+      .navbar { padding: 0 16px; }
+      .nav-link span { display: none; }
+      .nav-link { padding: 8px 10px; }
+      .main-content { padding: 24px 16px; }
+      .btn-logout span { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════ AUTH SCREEN ═══════════════ -->
+  <div class="screen active" id="screen-auth">
+    <div class="auth-box">
+      <div class="auth-logo">
+        <div class="auth-logo-icon">📚</div>
+        <span class="auth-logo-name">Studently</span>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" id="tab-login" onclick="switchTab('login')">Login</button>
+        <button class="tab" id="tab-signup" onclick="switchTab('signup')">Sign Up</button>
+      </div>
+
+      <!-- LOGIN -->
+      <div id="form-login">
+        <div class="form">
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="login-email" placeholder="you@example.com" />
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input type="password" id="login-password" placeholder="••••••••" />
+          </div>
+          <div class="msg" id="login-msg"></div>
+          <button class="btn-primary" id="login-btn" onclick="handleLogin()">Login</button>
+        </div>
+      </div>
+
+      <!-- SIGNUP -->
+      <div id="form-signup" style="display:none">
+        <div class="form">
+          <div class="field">
+            <label>Full Name</label>
+            <input type="text" id="signup-name" placeholder="Your name" />
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="signup-email" placeholder="you@example.com" />
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input type="password" id="signup-password" placeholder="min. 6 characters" />
+          </div>
+          <div class="msg" id="signup-msg"></div>
+          <button class="btn-primary" id="signup-btn" onclick="handleSignup()">Create Account</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ ONBOARDING SCREEN ═══════════════ -->
+  <div class="screen" id="screen-onboarding">
+    <div class="onboarding-box">
+      <div class="step-indicator">
+        <div class="step-dot done" id="dot-1"></div>
+        <div class="step-dot" id="dot-2"></div>
+        <div class="step-dot" id="dot-3"></div>
+      </div>
+
+      <div class="onboarding-header">
+        <h2 id="ob-title">When is your exam? 📅</h2>
+        <p id="ob-sub">We'll build your study plan around this date.</p>
+      </div>
+
+      <!-- Step 1: Exam Date -->
+      <div id="ob-step-1" class="ob-form">
+        <div>
+          <div class="ob-label">Exam Date</div>
+          <input type="date" id="exam-date" />
+        </div>
+        <button class="btn-primary" onclick="obNext(1)">Continue →</button>
+      </div>
+
+      <!-- Step 2: Subjects -->
+      <div id="ob-step-2" class="ob-form" style="display:none">
+        <div>
+          <div class="ob-label">Select your subjects</div>
+          <div class="chips">
+            <div class="chip" onclick="toggleChip(this,'Physics')">⚛️ Physics</div>
+            <div class="chip" onclick="toggleChip(this,'Chemistry')">🧪 Chemistry</div>
+            <div class="chip" onclick="toggleChip(this,'Maths')">📐 Maths</div>
+            <div class="chip" onclick="toggleChip(this,'English')">📖 English</div>
+            <div class="chip" onclick="toggleChip(this,'Biology')">🧬 Biology</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn-primary" style="background:var(--surface);border:1px solid var(--border);flex:0 0 auto" onclick="obBack(2)">← Back</button>
+          <button class="btn-primary" style="flex:1" onclick="obNext(2)">Continue →</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Syllabus -->
+      <div id="ob-step-3" class="ob-form" style="display:none">
+        <div>
+          <div class="ob-label">How much have you covered?</div>
+          <div class="sliders-wrap" id="sliders-container"></div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn-primary" style="background:var(--surface);border:1px solid var(--border);flex:0 0 auto" onclick="obBack(3)">← Back</button>
+          <button class="btn-primary" style="flex:1" id="finish-btn" onclick="handleFinish()">Finish Setup 🎉</button>
+        </div>
+        <div class="msg" id="ob-msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ HOME SCREEN ═══════════════ -->
+  <div class="screen" id="screen-home">
+
+    <!-- Navbar -->
+    <nav class="navbar">
+      <a class="nav-logo" href="#">
+        <div class="nav-logo-icon">📚</div>
+        <span class="nav-logo-name">Studently</span>
+      </a>
+
+      <div class="nav-links">
+        <button class="nav-link active" onclick="switchNav(this,'today')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span>Today's Tasks</span>
+        </button>
+        <button class="nav-link" onclick="switchNav(this,'revision')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+          <span>Revision Tasks</span>
+        </button>
+        <button class="nav-link" onclick="switchNav(this,'ai')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span>AI Doubt Solver</span>
+        </button>
+        <button class="nav-link" onclick="switchNav(this,'planner')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
+          <span>Study Planner</span>
+        </button>
+        <button class="nav-link" onclick="switchNav(this,'practice')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <span>Question Practice</span>
+        </button>
+      </div>
+
+      <div class="nav-right">
+        <div class="user-avatar" id="user-avatar">S</div>
+        <button class="btn-logout" onclick="handleLogout()"><span>Logout</span> →</button>
+      </div>
+    </nav>
+
+    <!-- Main -->
+    <div class="main-content">
+
+      <!-- TODAY TAB -->
+      <div class="tab-content active" id="tab-today">
+        <div class="welcome-section">
+          <h1>Good day, <span id="user-name-display">Student</span> 👋</h1>
+          <p>Here's your study overview for today.</p>
+        </div>
+
+        <!-- Exam Countdown -->
+        <div class="exam-card" id="exam-countdown-card">
+          <div class="exam-card-left">
+            <h3>Exam Date</h3>
+            <p id="exam-date-display">—</p>
+          </div>
+          <div class="days-badge" id="days-left-badge">— days left</div>
+        </div>
+
+        <!-- Subject Progress -->
+        <div class="section-heading">Your Progress</div>
+        <div class="progress-grid" id="progress-grid">
+          <div style="color:var(--text-muted);font-size:13px">No subjects saved yet.</div>
+        </div>
+      </div>
+
+      <!-- REVISION TAB -->
+      <div class="tab-content" id="tab-revision">
+        <div class="welcome-section">
+          <h1>Active Recall Engine 🔄</h1>
+          <p>Master your weak concepts. We'll remind you exactly when to revise them.</p>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 32px;">
+          <!-- Add Topic -->
+          <div class="progress-card" style="padding: 24px;">
+            <h3 style="margin-bottom: 20px;">Add New Topic</h3>
+            <div class="form">
+              <div class="field">
+                <label>Topic Name</label>
+                <input type="text" id="topic-name" placeholder="e.g. SN1 Reactions" />
+              </div>
+              <div class="field">
+                <label>Subject</label>
+                <select id="topic-subject" style="background:var(--bg2); border:1px solid var(--border); color:var(--text); padding:10px; border-radius:8px; outline:none;">
+                  <option value="Physics">Physics</option>
+                  <option value="Chemistry">Chemistry</option>
+                  <option value="Maths">Maths</option>
+                  <option value="Biology">Biology</option>
+                </select>
+              </div>
+              <button class="btn-primary" onclick="addTopic()">Add to Revision System</button>
+            </div>
+          </div>
+
+          <!-- Due Today -->
+          <div class="progress-card" style="padding: 24px;">
+            <h3 style="margin-bottom: 20px; color: var(--error);">Due For Revision Today</h3>
+            <div id="due-topics-list" style="display: flex; flex-direction: column; gap: 12px;">
+              <p style="color: var(--text-muted); font-size: 13px;">Loading topics...</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-heading">All Tracked Topics</div>
+        <div id="all-topics-list" class="progress-grid">
+          <!-- Topics will be injected here -->
+        </div>
+      </div>
+
+      <!-- AI DOUBT SOLVER TAB -->
+      <div class="tab-content" id="tab-ai">
+        <div class="welcome-section">
+          <h1>AI Doubt Solver 🤖</h1>
+          <p>Ask anything, get instant answers.</p>
+        </div>
+        
+        <div class="progress-card" style="padding: 32px; max-width: 800px; margin: 0 auto;">
+          <div class="form">
+            <div class="field">
+              <label>Your Question</label>
+              <textarea id="userInput" placeholder="Describe your doubt in detail..." style="background:var(--bg2); border:1px solid var(--border); color:var(--text); padding:14px; border-radius:8px; min-height:120px; font-family:inherit; outline:none; resize:vertical;"></textarea>
+            </div>
+            <div style="display:flex; gap:16px; align-items:center;">
+              <label style="margin-bottom:0;">Output Language:</label>
+              <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="radio" name="lang" value="English" checked> English</label>
+              <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="radio" name="lang" value="Hinglish"> Hinglish</label>
+            </div>
+            <button class="btn-primary" id="solveBtn" onclick="handleSolveDoubt()">Solve It →</button>
+          </div>
+          
+          <div id="response-display" style="margin-top:24px; padding:20px; background:var(--bg2); border-left:4px solid var(--accent); border-radius:8px; display:none; white-space:pre-wrap; line-height:1.6; font-size:14px;"></div>
+        </div>
+      </div>
+
+      <!-- STUDY PLANNER TAB -->
+      <div class="tab-content" id="tab-planner">
+        <div class="welcome-section">
+          <h1>Autonomous Study Planner 📅</h1>
+          <p>Craft a perfect day-by-day strategy for your exams.</p>
+        </div>
+
+        <div class="progress-card" style="padding: 32px; max-width: 800px; margin: 0 auto; margin-bottom: 32px;">
+          <div class="form">
+            <div class="field">
+              <label>Exam Name</label>
+              <input type="text" id="exam-name-planner" placeholder="e.g. Term 2 Finals, JEE, NEET..." />
+            </div>
+            <div class="field">
+              <label>Target Date</label>
+              <input type="date" id="exam-date-planner" />
+            </div>
+            <div class="field">
+              <label>Weak Topics (Optional)</label>
+              <input type="text" id="weak-subjects" placeholder="e.g. Organic Chemistry, Calculus..." />
+            </div>
+            <button class="btn-primary" id="generate-plan-btn" onclick="handleGeneratePlan()">Generate Smart Plan</button>
+          </div>
+        </div>
+
+        <div id="plan-results" style="display: none;">
+          <div class="section-heading">Your Personalized Strategy</div>
+          <div class="progress-card" style="padding: 0; overflow: hidden;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+              <thead>
+                <tr style="background: var(--bg2); text-align: left; border-bottom: 1px solid var(--border);">
+                  <th style="padding: 16px;">Day</th>
+                  <th style="padding: 16px;">Focus Area</th>
+                  <th style="padding: 16px;">Tasks</th>
+                </tr>
+              </thead>
+              <tbody id="plan-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRACTICE TAB -->
+      <div class="tab-content" id="tab-practice">
+        <div class="coming-soon">
+          <div class="icon">📝</div>
+          <h3>Question Practice</h3>
+          <p>Practice past papers and topic-wise questions. Coming soon!</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL      = 'https://wocnzfrwcsspenbiepwf.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvY256ZnJ3Y3NzcGVuYmllcHdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNzExNDMsImV4cCI6MjA4OTc0NzE0M30.Britr0FXy-mFjCsTvv3RSEIRRV_AJyPyVemF3u_3cb0';
+
+    const { createClient } = supabase;
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentUser      = null;
+    let selectedSubjects = [];
+
+    // ── INIT ──
+    sb.auth.getSession().then(({ data: { session } }) => {
+      if (session) afterLogin(session.user);
+    });
+
+    sb.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN'  && session) afterLogin(session.user);
+      if (event === 'SIGNED_OUT')            show('screen-auth');
+    });
+
+    function afterLogin(user) {
+      currentUser = user;
+      const saved = getSaved(user.id);
+      if (saved) {
+        showHome(user, saved);
+      } else {
+        show('screen-onboarding');
+      }
+    }
+
+    // ── SCREENS ──
+    function show(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    // ── AUTH ──
+    function switchTab(tab) {
+      document.getElementById('form-login').style.display  = tab === 'login'  ? 'block' : 'none';
+      document.getElementById('form-signup').style.display = tab === 'signup' ? 'block' : 'none';
+      document.getElementById('tab-login').classList.toggle('active',  tab === 'login');
+      document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+    }
+
+    function showMsg(id, type, text) {
+      const el = document.getElementById(id);
+      el.className = `msg ${type} show`;
+      el.textContent = text;
+    }
+
+    function setLoading(btnId, loading, label) {
+      const btn = document.getElementById(btnId);
+      btn.disabled = loading;
+      btn.innerHTML = loading ? '<span class="spinner"></span>Please wait...' : label;
+    }
+
+    async function handleLogin() {
+      const email    = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      if (!email || !password) return showMsg('login-msg', 'error', 'Fill in both fields.');
+      setLoading('login-btn', true, 'Login');
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      setLoading('login-btn', false, 'Login');
+      if (error) showMsg('login-msg', 'error', error.message);
+    }
+
+    async function handleSignup() {
+      const name     = document.getElementById('signup-name').value.trim();
+      const email    = document.getElementById('signup-email').value.trim();
+      const password = document.getElementById('signup-password').value;
+      if (!name || !email || !password) return showMsg('signup-msg', 'error', 'All fields are required.');
+      if (password.length < 6) return showMsg('signup-msg', 'error', 'Password must be at least 6 characters.');
+      setLoading('signup-btn', true, 'Create Account');
+      try {
+        const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: name } } });
+        if (error) { setLoading('signup-btn', false, 'Create Account'); return showMsg('signup-msg', 'error', error.message); }
+        if (!data.user) { setLoading('signup-btn', false, 'Create Account'); return showMsg('signup-msg', 'error', 'Signup failed.'); }
+        await sb.auth.signInWithPassword({ email, password });
+        setLoading('signup-btn', false, 'Create Account');
+      } catch (err) {
+        setLoading('signup-btn', false, 'Create Account');
+        showMsg('signup-msg', 'error', 'Network error — serve via localhost, not file://');
+      }
+    }
+
+    async function handleLogout() {
+      await sb.auth.signOut();
+    }
+
+    // ── ONBOARDING ──
+    function toggleChip(el, subject) {
+      const idx = selectedSubjects.indexOf(subject);
+      if (idx === -1) { selectedSubjects.push(subject); el.classList.add('selected'); }
+      else            { selectedSubjects.splice(idx, 1); el.classList.remove('selected'); }
+    }
+
+    function obNext(step) {
+      if (step === 1) {
+        const d = document.getElementById('exam-date').value;
+        if (!d) { alert('Please pick an exam date.'); return; }
+        document.getElementById('ob-step-1').style.display = 'none';
+        document.getElementById('ob-step-2').style.display = 'flex';
+        document.getElementById('dot-2').classList.add('done');
+        document.getElementById('ob-title').textContent = 'What subjects do you study? 📚';
+        document.getElementById('ob-sub').textContent   = 'Select all that apply.';
+      } else if (step === 2) {
+        if (selectedSubjects.length === 0) { alert('Pick at least one subject.'); return; }
+        renderSliders();
+        document.getElementById('ob-step-2').style.display = 'none';
+        document.getElementById('ob-step-3').style.display = 'flex';
+        document.getElementById('dot-3').classList.add('done');
+        document.getElementById('ob-title').textContent = 'How much have you covered? 📊';
+        document.getElementById('ob-sub').textContent   = 'Drag the sliders for each subject.';
+      }
+    }
+
+    function obBack(step) {
+      if (step === 2) {
+        document.getElementById('ob-step-2').style.display = 'none';
+        document.getElementById('ob-step-1').style.display = 'flex';
+        document.getElementById('dot-2').classList.remove('done');
+        document.getElementById('ob-title').textContent = 'When is your exam? 📅';
+        document.getElementById('ob-sub').textContent   = 'We\'ll build your study plan around this date.';
+      } else if (step === 3) {
+        document.getElementById('ob-step-3').style.display = 'none';
+        document.getElementById('ob-step-2').style.display = 'flex';
+        document.getElementById('dot-3').classList.remove('done');
+        document.getElementById('ob-title').textContent = 'What subjects do you study? 📚';
+        document.getElementById('ob-sub').textContent   = 'Select all that apply.';
+      }
+    }
+
+    function renderSliders() {
+      const c = document.getElementById('sliders-container');
+      c.innerHTML = '';
+      selectedSubjects.forEach(sub => {
+        const row = document.createElement('div');
+        row.className = 'slider-row';
+        row.innerHTML = `
+          <div class="slider-top">
+            <span>${sub}</span>
+            <span class="slider-val" id="val-${sub}">50%</span>
+          </div>
+          <div class="slider-track">
+            <input type="range" min="0" max="100" value="50" data-subject="${sub}"
+              oninput="document.getElementById('val-${sub}').textContent = this.value + '%'" />
+          </div>
+        `;
+        c.appendChild(row);
+      });
+    }
+
+    async function handleFinish() {
+      const examDate = document.getElementById('exam-date').value;
+      const syllabus = {};
+      document.querySelectorAll('#sliders-container input[type="range"]').forEach(r => {
+        syllabus[r.dataset.subject] = parseInt(r.value);
+      });
+
+      const payload = { exam_date: examDate, subjects: selectedSubjects, syllabus, saved_at: new Date().toISOString() };
+
+      setLoading('finish-btn', true, 'Finish Setup 🎉');
+      setSaved(currentUser.id, payload);
+
+      // Save to Supabase profiles table
+      try {
+        const { error } = await sb.from('profiles').update({
+          exam_date: examDate,
+          target_subjects: selectedSubjects,
+          syllabus_progress: syllabus,
+          onboarding_completed: true,
+          updated_at: new Date().toISOString()
+        }).eq('id', currentUser.id);
+        if (error) console.error('Supabase save error:', error);
+        else console.log('Saved to Supabase profiles ✓');
+      } catch(e) { console.error('Supabase error:', e); }
+
+      setLoading('finish-btn', false, 'Finish Setup 🎉');
+      showHome(currentUser, payload);
+    }
+
+    // ── HOME ──
+    function showHome(user, data) {
+      // Set name
+      const name = user.user_metadata?.full_name?.split(' ')[0] || user.email.split('@')[0];
+      document.getElementById('user-name-display').textContent = name;
+      document.getElementById('user-avatar').textContent = name[0].toUpperCase();
+
+      // Exam countdown
+      if (data.exam_date) {
+        const today   = new Date(); today.setHours(0,0,0,0);
+        const examDay = new Date(data.exam_date);
+        const diff    = Math.ceil((examDay - today) / (1000 * 60 * 60 * 24));
+        document.getElementById('exam-date-display').textContent = examDay.toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
+        document.getElementById('days-left-badge').textContent   = diff > 0 ? `${diff} days left` : diff === 0 ? 'Exam Today!' : 'Exam passed';
+      }
+
+      // Progress cards
+      const grid = document.getElementById('progress-grid');
+      grid.innerHTML = '';
+      (data.subjects || []).forEach(sub => {
+        const pct = data.syllabus?.[sub] || 0;
+        const card = document.createElement('div');
+        card.className = 'progress-card';
+        card.innerHTML = `
+          <div class="progress-card-top">
+            <span>${sub}</span>
+            <span class="pct-badge">${pct}%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:0%" data-width="${pct}%"></div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+
+      // Animate bars after paint
+      setTimeout(() => {
+        document.querySelectorAll('.progress-fill').forEach(el => {
+          el.style.width = el.dataset.width;
+        });
+      }, 100);
+
+      show('screen-home');
+    }
+
+    // ── NAV TABS ──
+    function switchNav(btn, tab) {
+      document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+    }
+
+    // ── LOCAL STORAGE ──
+    function getSaved(uid) {
+      try { return JSON.parse(localStorage.getItem(`studently_${uid}`)); } catch(e) { return null; }
+    }
+    function setSaved(uid, data) {
+      localStorage.setItem(`studently_${uid}`, JSON.stringify(data));
+    }
+
+    // ── SPACING ENGINE (SM-2) ──
+    let topics = JSON.parse(localStorage.getItem('studently_topics')) || [];
+
+    function saveTopics() { localStorage.setItem('studently_topics', JSON.stringify(topics)); }
+
+    function addTopic() {
+      const name = document.getElementById('topic-name').value.trim();
+      const subject = document.getElementById('topic-subject').value;
+      if (!name) return alert("Enter a topic name.");
+      const newTopic = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
+        name, subject, interval_days: 1, next_revision: new Date().toISOString(), last_studied: null
+      };
+      topics.push(newTopic);
+      saveTopics();
+      document.getElementById('topic-name').value = '';
+      renderTopics();
+    }
+
+    function reviewTopic(id, rating) {
+      const t = topics.find(topic => topic.id === id);
+      if (!t) return;
+      if      (rating === 'forgot') t.interval_days = 1;
+      else if (rating === 'hard')   t.interval_days = Math.max(1, Math.round(t.interval_days * 1.2));
+      else if (rating === 'easy')   t.interval_days = Math.max(1, Math.round(t.interval_days * 2.5));
+      t.last_studied = new Date().toISOString();
+      const nextDate = new Date();
+      nextDate.setDate(nextDate.getDate() + t.interval_days);
+      t.next_revision = nextDate.toISOString();
+      saveTopics();
+      renderTopics();
+    }
+
+    function renderTopics() {
+      const dueList = document.getElementById('due-topics-list');
+      const allList = document.getElementById('all-topics-list');
+      if (!dueList || !allList) return;
+      dueList.innerHTML = ''; allList.innerHTML = '';
+      const now = new Date();
+      let dueCount = 0;
+      topics.forEach(t => {
+        const nextRevDate = new Date(t.next_revision);
+        const isDue = nextRevDate <= now;
+        const card = document.createElement('div');
+        card.className = 'progress-card';
+        card.style.padding = '16px';
+        card.innerHTML = `
+          <h4 style="margin-bottom:4px;">${t.name}</h4>
+          <span class="pct-badge" style="background:var(--accent-glow); padding:2px 8px; border-radius:12px; font-size:11px;">${t.subject}</span>
+          <div style="margin-top:12px; font-size:12px; color:var(--text-dim);">
+            Interval: ${t.interval_days}d | Next: ${nextRevDate.toLocaleDateString()}
+          </div>
+        `;
+        allList.appendChild(card);
+        if (isDue) {
+          dueCount++;
+          const item = document.createElement('div');
+          item.style.cssText = `background:var(--bg2); border-left:3px solid var(--accent); padding:12px; border-radius:8px;`;
+          item.innerHTML = `
+            <div style="margin-bottom:10px;">
+              <div style="font-weight:600; font-size:14px;">${t.name}</div>
+              <div style="font-size:11px; color:var(--text-muted);">${t.subject}</div>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button onclick="reviewTopic('${t.id}','forgot')" style="flex:1; background:var(--error); color:white; border:none; border-radius:4px; font-size:10px; padding:4px; cursor:pointer;">Forgot</button>
+              <button onclick="reviewTopic('${t.id}','hard')" style="flex:1; background:var(--yellow); color:black; border:none; border-radius:4px; font-size:10px; padding:4px; cursor:pointer;">Hard</button>
+              <button onclick="reviewTopic('${t.id}','easy')" style="flex:1; background:var(--success); color:white; border:none; border-radius:4px; font-size:10px; padding:4px; cursor:pointer;">Easy</button>
+            </div>
+          `;
+          dueList.appendChild(item);
+        }
+      });
+      if (dueCount === 0) dueList.innerHTML = '<p style="color:var(--text-muted); font-size:12px;">All caught up! ✅</p>';
+    }
+
+    // ── AI ENGINE (GEMINI) ──
+    const GEMINI_API_KEY = "AIzaSyD61SmpTugsITc9uZuCqcYMg-mjAIvyuPg";
+    async function callGemini(systemPrompt, userMessage) {
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ parts: [{ text: userMessage }] }]
+          })
+        });
+        if (!response.ok) throw new Error(`API error: ${response.status}`);
+        const data = await response.json();
+        return data.candidates[0].content.parts[0].text;
+      } catch (err) { console.error(err); throw err; }
+    }
+
+    // ── DOUBT SOLVER ──
+    async function handleSolveDoubt() {
+      const query = document.getElementById('userInput').value.trim();
+      const display = document.getElementById('response-display');
+      const btn = document.getElementById('solveBtn');
+      if (!query) return alert("Type your doubt first!");
+      
+      btn.disabled = true; btn.textContent = "Thinking...";
+      display.style.display = "block"; display.textContent = "Analyzing your doubt...";
+      
+      try {
+        const lang = document.querySelector('input[name="lang"]:checked').value;
+        const systemPrompt = `You are Studently AI. provide clear solution in ${lang}. Use bullet points.`;
+        const result = await callGemini(systemPrompt, query);
+        display.textContent = result;
+      } catch (err) { display.textContent = "Error: " + err.message; }
+      finally { btn.disabled = false; btn.textContent = "Solve It →"; }
+    }
+
+    // ── STUDY PLANNER ──
+    async function handleGeneratePlan() {
+      const name = document.getElementById('exam-name-planner').value.trim();
+      const date = document.getElementById('exam-date-planner').value;
+      const weak = document.getElementById('weak-subjects').value.trim();
+      if (!name || !date) return alert("Exam Name and Date are required!");
+
+      const btn = document.getElementById('generate-plan-btn');
+      btn.disabled = true; btn.textContent = "Generating Strategy...";
+      
+      const systemPrompt = `You are an expert academic study planner. Output strictly in raw JSON format (array of objects).
+        Rules: 5-day structured plan. Actionable tasks. Format: [{"day":1,"focus":"..","tasks":".."}]`;
+      const userPrompt = `Exam: ${name}, Date: ${date}, Weak Topics: ${weak || "None"}`;
+
+      try {
+        const response = await callGemini(systemPrompt, userPrompt);
+        let clean = response.trim();
+        const start = clean.indexOf('['); const end = clean.lastIndexOf(']');
+        if (start !== -1 && end !== -1) clean = clean.substring(start, end + 1);
+        const plan = JSON.parse(clean);
+
+        const tbody = document.getElementById('plan-table-body');
+        tbody.innerHTML = '';
+        plan.forEach(p => {
+          const tr = document.createElement('tr');
+          tr.style.borderBottom = "1px solid var(--border)";
+          tr.innerHTML = `
+            <td style="padding:16px;"><span class="pct-badge" style="background:var(--accent); color:white; padding:4px 8px; border-radius:6px;">Day ${p.day}</span></td>
+            <td style="padding:16px; font-weight:600;">${p.focus}</td>
+            <td style="padding:16px; color:var(--text-dim); line-height:1.4;">${p.tasks}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+        document.getElementById('plan-results').style.display = "block";
+      } catch (err) { alert("Failed to generate plan. Please try again."); console.error(err); }
+      finally { btn.disabled = false; btn.textContent = "Generate Smart Plan"; }
+    }
+
+    // ── KEYBOARD ──
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || !document.getElementById('screen-auth').classList.contains('active')) return;
+      const loginVisible = document.getElementById('form-login').style.display !== 'none';
+      if (loginVisible) handleLogin(); else handleSignup();
+    });
+
+    // ── INITIALIZE ──
+    document.addEventListener('DOMContentLoaded', () => {
+      renderTopics();
+    });
+  </script>
+</body>
+</html>
